@@ -1,0 +1,85 @@
+<html><head><title>
+PIDDLE StringTest
+</title></head><body>
+
+<center>
+<h3>PIDDLE</h3>
+<h1>StringTest</h1>
+</center>
+
+<center><image src="stringtest.gif" width=400 height=400>
+<hr width=35%>
+</center>
+
+<pre>
+"""
+This module tests basic font- and string-handling functions of PIDDLE.
+In particular, it illustrates the seven standard fonts.
+"""
+
+from piddle import *
+
+### change the following two lines to try a different PIDDLE backend:
+from piddleQD import QDCanvas
+TestCanvas = QDCanvas
+
+tx = 10
+ty = 70
+
+def Write(s, font=None):
+	global tx,ty
+	if font: canvas.defaultFont = font
+	text = s
+	while text and text[-1] == '\n': text = text[:-1]
+	canvas.drawString(text, x=tx, y=ty)
+	if s[-1] == '\n':
+		tx = 10
+		ty = ty + canvas.fontHeight() + canvas.fontDescent()
+	else:
+		tx = tx + canvas.stringWidth(s)
+
+def CenterAndBox(s, cx=200, y=40):
+	"tests string positioning, stringWidth, fontAscent, and fontDescent"
+	canvas.drawLine(cx,y-30, cx,y+30, color=yellow)
+	w = canvas
+	w = canvas.stringWidth(s)
+
+	canvas.drawLine(cx-w/2, y, cx+w/2, y, color=red)
+	canvas.drawString(s, cx-w/2, y )
+	canvas.defaultLineColor = Color(0.7,0.7,1.0)	# light blue
+	canvas.drawLine(cx-w/2, y-20, cx-w/2, y+20)	# left
+	canvas.drawLine(cx+w/2, y-20, cx+w/2, y+20)	# right
+	asc, desc = canvas.fontAscent(), canvas.fontDescent()
+	canvas.drawLine(cx-w/2-20, y-asc, cx+w/2+20, y-asc)		# top
+	canvas.drawLine(cx-w/2-20, y+desc, cx+w/2+20, y+desc)	# bottom
+
+def StandardFonts():
+	canvas.defaultLineColor = black
+	global tx,ty
+	for size in (12, 18):
+		for fontname in ("times", "courier", "helvetica", "symbol",
+						"monospaced", "serif", "sansserif"):			
+			tx = 10
+			ty = ty + size*1.5
+			Write("%s %d " % (fontname,size), Font(face=fontname, size=size))
+			Write("bold ", Font(face=fontname, size=size, bold=1))
+			Write("italic ", Font(face=fontname, size=size, italic=1))
+			Write("underline", Font(face=fontname, size=size, underline=1))
+		
+try:
+	canvas.close()
+except: pass
+
+canvas = TestCanvas( size=(400,400) )
+CenterAndBox("spam, spam, spam, baked beans, and spam!")
+StandardFonts()
+</pre>
+
+
+<p><hr>
+http://<a href="../../../../index.html" target="_top">www.strout.net</a>/<a href="../../../index.html" target="_top">info</a>/<a href="../../index.html" target="_top">coding</a>/<a href="../index.html" target="_top">python</a>/<a href="index.html" target="_top">piddle</a>/stringtest.html
+<br>Last Updated:
+5/17/99
+. . . . . .
+<a href="mailto:webmaster@strout.net?subject=piddle">webmaster@strout.net</a>
+</body></html>

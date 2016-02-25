@@ -1,0 +1,63 @@
+<html><head><title>
+piddleQD
+</title></head><body>
+
+<center>
+<h1>piddleQD</h1>
+<h3><a href="index.html">piddle</a> backend for: MacOS QuickDraw</h3>
+<hr width=35%>
+</center>
+
+
+<h2>Applicability</h2>
+
+This backend generates MacOS QuickDraw graphics within a window of the Mac Python IDE.  The graphics generated can be copied to the clipboard as standard (nonpixelated) PICT data.  This backend does not work on non-Mac platforms.  It does not work (at least, not easily) without the IDE.
+
+<p>Currently, it also requires a patch to get MacPython up to pre-release standards (see below).  This is a set of files which have been updated in the developer's distribution since 1.5.2b1, but have not yet been released.  They won't be needed once 1.5.2 (final) is released.
+
+<h2>Download</h2>
+
+piddleQD is part of the standard PIDDLE distribution, but until Jack and Just get around to releasing 1.5.2 (final) of MacPython, you'll also need this:
+<ul>
+	<li><b><a href="http://strout.net/python/piddle/piddleQD/patch.sit.hqx">patch.sit.hqx</a></b> -- place each file in the corresponding folder within your Python folder
+</ul>
+
+<h2>Author</h2>
+
+This backend was written by <a href="http://www.strout.net/info/personal/" target="_top">Joe Strout</a> (<a href="mailto:joe@strout.net">joe@strout.net</a>).
+
+<h2>Known Bugs & Limitations</h2>
+
+<ul>
+<li>Interactivity (mouse clicks, status messages, etc.) is not yet supported.
+
+<p><li>The drawing commands are stored internally in a PICT, and drawn to the screen when the canvas is flushed.  This means that (1) users must always remember to flush the canvas, and (2) it is not really appropriate for continuous animation; you must periodically clear the canvas to get rid of all the old drawing.
+
+</ul>
+
+<h2>Sample Output</h2>
+
+Please remember that the outputs below have been converted to GIF; in many cases the original was of noticably higher quality.
+<P>
+
+<center>
+<image src="sample1.gif" width=300 height=300>
+<hr width=35%>
+
+<image src="sample2.jpg" width=300 height=300>
+<hr width=35%>
+
+<image src="stringtest.gif" width=400 height=400>
+<hr width=35%>
+
+<image src="rottest-qd.gif" width=300 height=300>
+
+</center>
+
+<p><hr>
+<!-- http://<a href="../../../../../index.html"target="_top">www.strout.net</a>/<a href="../../../../index.html"target="_top">info</a>/<a href="../../../index.html"target="_top">coding</a>/<a href="../../index.html"target="_top">python</a>/<a href="../index.html"target="_top">piddle</a>/piddleQD/index.html --!>
+<br>Last Updated:
+6/14/99
+. . . . . .
+<a href="mailto:clee@sourceforege.net?subject=piddle">webmaster@piddle.sourceforge.net</a>
+</body></html>

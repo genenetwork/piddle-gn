@@ -1,0 +1,86 @@
+<html><head><title>
+PIDDLE Sample 2
+</title></head><body>
+
+<center>
+<h3>PIDDLE</h3>
+<h1>Sample 2</h1>
+</center>
+
+<center><image src="sample2.jpg" width=300 height=300>
+<hr width=35%>
+</center>
+
+<pre>
+#	This program generates a rainbow spectrum,
+#	and also plots the individual components.
+
+import piddle
+import math
+
+def makeCanvas():
+	"Create a Canvas object."
+	import piddleQD
+	return piddleQD.QDCanvas()
+	
+def plot(f,canvas,offset=0):
+	for i in range(0,100):
+		x = float(i)/100
+		canvas.drawLine(i*3+offset,250, i*3+offset,250-100*f(x))
+
+def showColors(colors):
+	global canvas
+	try:
+		canvas.clear()
+	except:
+		canvas = makeCanvas()
+
+	# draw a black background for the spectrum
+	canvas.drawRect( 0,0,300,100, edgeColor=piddle.black, fillColor=piddle.black )
+
+	# draw the spectrum
+	for i in range(len(colors)):
+		canvas.drawLine(i,20,i,80, colors[i])
+
+	# plot the components of the spectrum
+	canvas.defaultLineColor = piddle.red
+	plot(redfunc, canvas)
+
+	canvas.defaultLineColor = piddle.blue
+	plot(bluefunc, canvas, 1)
+
+	canvas.defaultLineColor = piddle.green
+	plot(greenfunc, canvas, 2)
+
+	# update the canvas
+	canvas.flush()
+
+def bluefunc(x):
+	return 1.0 / (1.0 + math.exp(-10*(x-0.6)))
+
+
+def redfunc(x):
+	return 1.0 / (1.0 + math.exp(10*(x-0.5)))
+
+	return out
+
+def greenfunc(x):
+	return 1 - pow(redfunc(x+0.2),2) - bluefunc(x-0.3)
+
+def genColors(n=100):
+	out = [None]*n;
+	for i in range(n):
+		x = float(i)/n
+		out[i] = piddle.Color(redfunc(x), greenfunc(x), bluefunc(x));
+	return out
+
+showColors(genColors(300))</pre>
+
+
+<p><hr>
+http://<a href="../../../../index.html" target="_top">www.strout.net</a>/<a href="../../../index.html" target="_top">info</a>/<a href="../../index.html" target="_top">coding</a>/<a href="../index.html" target="_top">python</a>/<a href="index.html" target="_top">piddle</a>/sample2.html
+<br>Last Updated:
+3/22/99
+. . . . . .
+<a href="mailto:webmaster@strout.net?subject=piddle">webmaster@strout.net</a>
+</body></html>

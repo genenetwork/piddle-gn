@@ -1,0 +1,434 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="GENERATOR" content="Mozilla/4.7 [en] (X11; I; Linux 2.2.13 i686) [Netscape]">
+   <title>PIDDLE</title>
+</head>
+<body bgcolor="#FFFFF0">
+
+<center>
+<h1>
+PIDDLE: A Cross-Platform Drawing Library</h1></center>
+
+<center>Joseph J. Strout
+<br>La Jolla, CA</center>
+
+<center><table WIDTH="80%" >
+<tr>
+<th>ABSTRACT</th>
+</tr>
+
+<tr>
+<td>A new open-source drawing library has been written in pure Python.
+It is called PIDDLE, an acronym for "Plug-In Drawing, Does Little Else."
+The name refers to two of PIDDLE's distinguishing features. First, PIDDLE
+only handles drawing; it does not attempt to do page layout, GUI elements
+such as menus or buttons, persistent graphics objects, or the like. Instead,
+it provides a simple API for drawing lines, curves, polygons, figures,
+and text. Second, PIDDLE uses "plug-in" backend renderers to do the actual
+drawing, and these renderers may also be portable or make use of platform-specific
+features. A backend may generate graphics interactively in a window, write
+to a file, or draw to internal buffers. Backends included with the standard
+PIDDLE distribution include PDF, PostScript, MacOS QuickDraw, Python Imaging
+Library, and others. Use of the common PIDDLE API allows a Python program
+to draw in an interactive window, write to a pixel-based file format such
+as PNG, or generate a publication-quality PDF or EPS file with exactly
+the same user code. Because the API was kept simple, it is fairly straightforward
+to write new backends; backends being developed by various authors include
+OpenGL, wxPython, Windows, and Adobe Illustrator. We believe that PIDDLE
+fills an important niche in Python's toolset, and expect it to become a
+standard for low-level, portable drawing operations.</td>
+</tr>
+</table></center>
+
+<h2>
+1. Introduction</h2>
+
+<h3>
+1.1. Background</h3>
+Python's expressiveness, clean design, and power have made it an increasingly
+popular language for tasks ranging from CGI to scientific computing. It
+includes standard modules for networking, file manipulation, Internet protocols,
+and much more, allowing users to write code once that can run anywhere.
+<p>But to a large extent, this portability breaks down when graphics are
+involved. Unlike newer languages such as Java, Python has no standard GUI
+toolkit or drawing API. A variety of graphics solutions are available,
+such as Tk, the Python Imaging Library, and various platform APIs (e.g.,
+Windows, XLib, and MacOS QuickDraw). Each of these has a unique set of
+concepts, functions, and variables, such that code written for one cannot
+be used with another without extensive changes.
+<h3>
+1.2. Purpose</h3>
+We propose a standard drawing API to address this issue. An ideal drawing
+system should meet the following requirements:
+<ul>
+<li>
+<b>Portability</b> -- it should work on any platform where Python can be
+installed.</li>
+
+<li>
+<b>Multiple Outputs</b> -- with a single API, we should be able to generate
+interactive on-screen graphics, pixel-mapped graphics for use on the web,
+print-quality graphics for use in publications and reports, etc.</li>
+
+<li>
+<b>Efficiency</b> -- it should run quickly, especially for interactive
+applications, and not require prohibitive amounts of memory.</li>
+
+<li>
+<b>Expressiveness</b> -- the drawing system should not limit the user in
+what she can draw.</li>
+
+<li>
+<b>Simplicity</b> -- the API should be straightforward and easy to use.</li>
+</ul>
+A drawing system to meet these requirements has been developed. It is called
+<i>PIDDLE</i> (Plug-In Drawing, Does Little Else).
+<h3>
+1.3. Results</h3>
+Though some of the requirements in the previous section tend to conflict,
+PIDDLE achieves a workable balance. It is portable, written in standard
+Python, and it has multiple outputs -- referred to hereafter as "backends".
+Its expressiveness is good, providing standard support for Bezier curves,
+figures (composed of lines, arcs, and curves), pixel-mapped images, and
+rotated text. PIDDLE's quality is excellent, using floating-point precision
+as needed for print-quality graphics. Its efficiency is generally good,
+taking advantage of the built-in capabilities of the backend wherever possible.
+Finally, the API is simple enough to learn in a matter of minutes.
+<p>Backends which are complete, or nearly so, at the time of this writing
+include the following: PDF and Postscript for print-quality, portable graphics;
+QuickDraw, Tk, OpenGL, and wxPython for interactive onscreen graphics;
+Adobe Illustrator file format; and the Python Imaging Library for drawing
+to a pixel map in memory, and from there saving to the large variety of
+formats (such as GIF, JPEG, and PNG) supported by PIL. In addition, there
+is a "VCR" backend; this records all the drawing commands given it, optionally
+saving them to a human-readable file, and can play them back into another
+backend.
+<h2>
+2. Design</h2>
+
+<h3>
+2.1. Overall class structure</h3>
+The file and class relationships within PIDDLE are diagrammed in <b>Figure
+1</b>. The main class is piddle.Canvas. This is an abstract class; a number
+of methods in this class will raise NotImplementedError if called. Other
+methods provide default implementations in terms of more basic drawing
+primitives. For example, the drawCurve method in piddle.Canvas approximates
+a Bezier curve as a polygon, then calls drawPolygon to finish the job.
+But drawPolygon itself is an unimplemented method which must be defined
+in derived classes.
+<center>
+<p><img SRC="omt.gif" height=442 width=496>
+<p><b>Figure 1</b>. Object Modeling Technique diagram of the PIDDLE modules
+and classes.</center>
+
+<p>The actual drawing is done by one of the specialized canvas types. The
+naming conventions for these are as follows: a backend which draws to "Spam"
+would be defined in a file called piddleSpam.py, and its specialized canvas
+type would be called SpamCanvas. This allows a user to import several canvas
+types into the same namespace. Each specialized canvas must implement all
+of the methods in piddle.Canvas which would otherwise raise NotImplementedError.
+Other methods may also be overridden if the backend rendering system offers
+a more efficient or better-quality implementation; e.g., a backend with
+built-in support for Bezier curves should use that rather than accept the
+default, polygon-based implementation.
+<p>In addition to Canvas, the piddle file contains several accessory classes.
+Color is an encapsulation of the red/green/blue color space, complete with
+standard arithmatic, hashing, and conversion operators; there is also a
+HexColor factory function (not shown) which constructs a Color from a six-digit
+hexadecimal string as commonly used in HTML. The piddle module also includes
+constants for all the standard HTML colors (e.g., "cyan", "olive", and
+"skyblue"), as well as a special "transparent" constant used when no drawing
+should be done.
+<p>Font is an encapsulation of a typeface, size, and attributes. The typeface
+is stored as a string or list of strings (more detail is given in section
+3 below). All compliant PIDDLE backends must support at least the seven
+standard PIDDLE font names (times, helvetica, courier, symbol, monospaced,
+serif, and sansserif), and may also support other fonts.
+<p>StateSaver is a sentry class which can be used to save and restore a
+canvas's default line color, line width, fill color, and font.
+<h3>
+2.2. API breakdown</h3>
+All of the methods in piddle.Canvas are shown in <b>Table 1</b>; these
+essentially form the PIDDLE drawing API. There are eleven drawing methods,
+such as drawLine, drawRect, and drawImage. Four methods provide font metrics,
+often needed for positioning text within the canvas. Three general-purpose
+methods provide a way to flush a canvas (force all pending updates to be
+written or drawn), to clear it, or set the "info line" -- a little message-display
+area available on some interactive canvas types.
+<center><table CELLPADDING=10 BGCOLOR="#F0F0FF" >
+<tr>
+<td VALIGN=TOP ROWSPAN="2"><b><u>Drawing</u></b>
+<br><i>drawLine</i>
+<br>drawLines
+<br><i>drawString</i>
+<br>drawCurve
+<br>drawRect
+<br>drawRoundRect
+<br>drawEllipse
+<br>drawArc
+<br><i>drawPolygon</i>
+<br>drawFigure
+<br><i>drawImage</i></td>
+
+<td VALIGN=TOP ROWSPAN="2"><b><u>Font Metrics</u></b>
+<br><i>stringWidth</i>
+<br>fontHeight
+<br><i>fontAscent</i>
+<br><i>fontDescent</i></td>
+
+<td VALIGN=TOP><b><u>General</u></b>
+<br>clear
+<br>flush
+<br>save
+<br>setInfoLine</td>
+
+<td VALIGN=TOP><b><u>Helpers</u></b>
+<br>arcPoints
+<br>curvePoints
+<br>drawMultiLineString</td>
+</tr>
+
+<tr>
+<td VALIGN=TOP><b><u>Capabilities</u></b>
+<br>isInteractive
+<br>canUpdate</td>
+
+<td VALIGN=TOP><b><u>Callbacks</u></b>
+<br>onClick
+<br>onOver
+<br>onKey</td>
+</tr>
+</table></center>
+
+<center>
+<p><b>Table 1</b>. Primary methods and callbacks in the PIDDLE API. Italics
+<br>indicate abstract methods -- i.e., those not implemented in the piddle.Canvas.</center>
+
+<p>Two methods are provided for checking a canvas's capabilities; in particular,
+some canvases are interactive (e.g., drawing in a window), while others
+are noninteractive by their very nature (e.g., PDF). For interactive canvases,
+three callback functions are defined, which will be called when the user
+clicks in the canvas, moves the mouse over it, or presses a key while the
+canvas is active. Finally, there are two helper methods which are seldom
+needed by users.
+<p>Most of the methods in piddle.Canvas have default implementations. A
+minimal derived canvas need only implement the abstract methods, shown
+in italics in <b>Table 1</b>. These are four drawing methods (lines, strings,
+polygons, and images), plus three font metric methods. Thus, a new PIDDLE
+backend may be written by implementing only seven functions.
+<h3>
+2.3. Drawing model</h3>
+PIDDLE is a vector-based drawing system. Though it can also draw to pixel
+representations (such as a Python Imaging Library canvas), it has no standard
+facilities for manipulating individual pixels (since many backends may
+have no concept of "pixels"). All drawing is done is immediate mode, as
+opposed to retained; that is, once a line is drawn, there is no way to
+refer to or modify the drawn line. A retained-mode, object-based drawing
+system could easily be built on top of PIDDLE, but this is beyond the scope
+of PIDDLE itself. Finally, note that while the drawing mode is immediate,
+the actual output of any particular backend may not appear until the canvas
+is flushed.
+<p>PIDDLE uses a standard graphics coordinate system, with <b>x</b> values
+starting with 0 at the left side of the canvas and increasing to the right,
+and <b>y</b> values of 0 at the top and increasing down. The unit of measure
+is the "point" defined as 1/72 inch, though the actual size of a point
+may vary (or even be undefined) on some backends. All coordinates are interpreted
+as floating-point values, and fractional coordinates are explicitly allowed,
+though some backends may round to the nearest point.
+<p>As noted before, PIDDLE uses the Red/Green/Blue (RGB) color space. Converting
+from Cyan/Magenta/Yellow/Black coordinates to RGB is fairly straightforward,
+but is not part of PIDDLE.
+<h2>
+3. Usage</h2>
+The standard drawing idiom consists of three steps:
+<ol>
+<li>
+instantiate a class derived from piddle.Canvas</li>
+
+<li>
+call drawing methods on that object, such as drawLine or drawString</li>
+
+<li>
+flush the canvas (which flushes graphics pipelines, updates the screen, etc.)</li>
+</ol>
+In addition, for file-based backends, the flush() command would be folowed
+by a save() operation to write the canvas output to a file.  For an
+interactive application, one would also assign callback functions to the
+canvas, which will be invoked on a mouse or keyboard event. These callbacks
+would do some additional drawing, then flush the canvas again.  To reset
+the canvas, one could use the clear() method.  <p>Use of PIDDLE may be most
+easily illustrated with an example. <b>Listing 1</b> demonstrates a variety
+of drawing commands, using the simple create-draw-flush pattern. The output
+of this code, generated by piddleQD, is shown in <b>Figure 2</b>. Other
+backends produce very similar output.  <center><table BORDER > <tr> <td
+BGCOLOR="#F0F0FF"> <pre>from piddleQD import
+*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; # change these to
+whatever canvas =
+QDCanvas()&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+# backend you want to test
+
+canvas.defaultLineColor = Color(0.7,0.7,1.0)&nbsp;&nbsp;&nbsp; # (light blue)
+canvas.drawLines( map(lambda i:(i*10,0,i*10,300), range(30)) )
+canvas.drawLines( map(lambda i:(0,i*10,300,i*10), range(30)) )
+canvas.defaultLineColor = black&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+canvas.drawLine(10,200, 20,190, color=red)
+canvas.drawEllipse( 130,30, 200,100, fillColor=yellow, edgeWidth=4 )
+
+canvas.drawArc( 130,30, 200,100, 45,50, fillColor=blue, edgeColor=navy, edgeWidth=4 )
+
+canvas.defaultLineWidth = 4
+canvas.drawRoundRect( 30,30, 100,100, fillColor=blue, edgeColor=maroon )
+canvas.drawCurve( 20,20, 100,50, 50,100, 160,160 )
+
+canvas.drawString("This is a test!", 30,130, Font(face="times",size=16,bold=1),&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; color=green, angle=-45)
+
+polypoints = [ (160,120), (130,190), (210,145), (110,145), (190,190) ]
+canvas.drawPolygon(polypoints, fillColor=lime, edgeColor=red, edgeWidth=3, closed=1)
+
+canvas.drawRect( 200,200,260,260, edgeColor=yellow, edgeWidth=5 )
+canvas.drawLine( 200,260,260,260, color=green, width=5 )
+canvas.drawLine( 260,200,260,260, color=red, width=5 )
+
+canvas.flush()</pre>
+</td>
+</tr>
+</table></center>
+
+<center><b>Listing 1.</b> A sample program using PIDDLE. The output is
+shown in <b>Figure 2</b>.
+<p><img SRC="sample.gif" height=300 width=300>
+<br><b>Figure 2</b>. Output from <b>Listing 1</b>.</center>
+
+<p>PIDDLE comes with a reference manual describing each drawing function,
+with default parameter values and example usage. The code also uses docstrings
+throughout, allowing users to get quick help on classes and functions interactively
+or via an automated tool. A number of examples (including the one above)
+are available via the PIDDLE web site, and the distribution comes with
+an interactive test program that allows one to pair any test with any standard
+backend. Alpha testers have found use of PIDDLE to be straightforward.
+<h2>
+4. Implementation Issues</h2>
+
+<h3>
+4.1. Handling of nonstandard extensions</h3>
+PIDDLE defines a fairly minimal vector drawing API. Many backends have
+capabilities beyond this minimal set, and may choose to expose some of
+these extra functions by additional methods on the derived canvas class.
+For example, a PILCanvas has a "getImage" method which returns the underlying
+PIL Image object, allowing the user to manipulate individual pixels, apply
+filtering operations, etc. Similarly, PDFCanvas has some methods which
+expose additional functionality of PDF.
+<p>Users who wish to write portable PIDDLE code are responsible for taking
+care to avoid such non-standard extensions. The easiest way to test whether
+a piece of drawing code uses only standard PIDDLE drawing functions is
+to simply try it with another type of canvas. Several backends (PostScript,
+PDF, VCR) run on all platforms with only standard Python modules, so multiple
+canvas types are always available.
+<p>When possible, backend developers should code their custom canvases
+in such a way that the nonstandard extensions go through some sort of "bottleneck"
+method or object, as getImage does for PIL. This will make it far more
+obvious to the user when she is going beyond the standard PIDDLE API.
+<p>Naturally, many specific applications require only a one or a limited
+set of backends; e.g., a CGI-based application generating graphics for
+the web may use only piddlePIL, and never need to generate print-quality
+drawings. In this case, there is no reason not to use the nonstandard extensions
+to their fullest extent.
+<h3>
+4.2. Dealing with rotated strings</h3>
+It was decided early in the design phase to include support for rotated
+strings. This is an important feature, often needed for charts, graphs,
+and diagrams. However, it is also a feature lacking in many low-level drawing
+APIs, and so is a frequent sticking point for backend developers. Several
+brief case studies will illustrate the various solutions used.
+<p>First, consider the Python Imaging Library. It has a simple drawing
+API that includes drawing of non-rotated, but not rotated, strings. The
+solution in this case was to create two temporary Image objects, into which
+the string is drawn; one in color, and the other in black for use as a
+mask. The images are then rotated (using another PIL built-in function),
+and copied to the PILCanvas image using the mask. While somewhat complex,
+this solution works and requires no Python extensions other than PIL itself.
+<p>MacOS QuickDraw also has no built-in support for rotated strings, and
+no built-in way to rotate a pixel map either. Making a compliant PIDDLE
+backend for QuickDraw therefore required making a compiled Python extension
+module for this purpose. This module is made available via the PIDDLE web
+site, and may be included in future distributions of MacPython. PiddleQD
+can be used without this extension module, but attempts to draw a rotated
+string will raise an exception.
+<p>A similar problem is faced by wxPython, but the difficulty here is compounded
+by the cross-platform nature of the backend (wxWindows). Various strategies
+are being investigated, but a satisfactory solution has not yet been found.
+<h3>
+4.3. Other common difficulties</h3>
+Rotate strings are often the most difficult feature of PIDDLE for new backends
+to support. Two other features have also been sources of difficulty: polygon
+filling, and display of images.
+<p>When the edges of a complex polygon cross several times, there can be
+regions (such as the center of the star in <b>Figure 2</b> which may be
+considered either inside or outside the polygon, depending on the fill
+rule used. The two common fill rules are "even-odd" and "winding". Both
+are sensible rules, but unfortunately, the industry has not standardized
+on one or the other; for example, MacOS QuickDraw uses only even-odd filling,
+whereas Tk uses the winding rule. It was decided to allow this feature
+to vary from backend to backend.
+<p>Second, PIDDLE supports the drawing of Python Imaging Library (PIL)
+images on systems with PIL installed, thereby allowing the user to combine
+pixel-mapped and vector graphics for maximum flexibility. This is often
+a sticking point for new backends which emphasize vector graphics and have
+only limited support for pixel maps; a conversion function between PIL
+images and the backend pixel-map format is usually required. So far, this
+has not been a prohibitive difficulty for any backend.
+<h2>
+5. Conclusion &amp; Future Plans</h2>
+PIDDLE provides a simple yet powerful vector graphics API. It acts as a
+standard interface layer between Python and a set of backend rendering
+systems that is already usefully large, and growing larger. It is expected
+that more backends will be added whenever the need arises.
+<p>A large part of PIDDLE's success is attributable to the simplicity of
+its API; by keeping the feature set small, it has been relatively easy
+to build, debug, and add new backends. However, a few features which did
+not make it into the first version of PIDDLE are so handy that they will
+probably be added in a future version. Foremost is clipping -- i.e., limiting
+the drawing to a rectangular area. Coordinate transformations (probably
+barring rotation) will also be considered.
+<h2>
+6. Acknowledgements</h2>
+PIDDLE has been a group effort from its very inception, and a shining example
+of the power of the open-source model. It could not have succeeded without
+the contributions of all participants. While the comments of all members
+of the PIDDLE mailing list have been very helpful in shaping PIDDLE's design,
+the author would like to particularly thank the following contributors
+of code:
+<ul>
+<li>
+David Ascher: for the OpenGL backend and insightful comments on design</li>
+
+<li>
+Bill Bedford: for the Adobe Illustrator backend</li>
+
+<li>
+Magnus Lie Hetland: for the PostScript backend, and even more for playing
+a critical part in the early design</li>
+
+<li>
+Kevin Jacobs: for the wxPython backend</li>
+
+<li>
+Christopher Lee: for jumping in wherever help was needed</li>
+
+<li>
+Andy Robinson: for the PDF and PythonWin backends, assistance with PostScript
+issues, and valuable add-ons and evangelism</li>
+
+<li>
+Perry Stoll: for the Tk backend</li>
+
+<li>
+Michelle Strout: for design input and moral support</li>
+</ul>
+
+</body>
+</html>

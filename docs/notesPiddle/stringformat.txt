@@ -1,0 +1,27 @@
+The StringFormat module allows for character-by-character formatting of
+strings. It imitates the PIDDLE string drawing and string metrics
+interface. The string formatting is done with specialized XML syntax
+within the string. Therefore, the interface for the StringFormat module
+consists of wrapper functions for the PIDDLE string interface and
+various XML tags and characters.
+
+StringFormat functions 
+
+       drawString(canvas, s, x, y, [font], [color], [angle]) 
+       stringWidth(canvas, s, [font]) 
+       fontHeight(canvas, [font]) 
+       fontAscent(canvas, [font]) 
+       fontDescent(canvas, [font]) 
+
+StringFormat XML tags 
+
+       <b> </b> - bold 
+       <i> </i> - italics 
+       <u> </u> - underline 
+       <super> </super> - superscript 
+       <sub> </sub> - subscript 
+
+StringFormat XML characters 
+
+       Greek Letter Symbols as specified in MathML 
+

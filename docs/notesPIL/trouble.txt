@@ -1,0 +1,16 @@
+Troubleshooting piddlePIL
+
+
+"bad font!" error: this means that piddlePIL can't find a requested font.
+All the test cases use valid fonts, so this indicates a problem with the
+installation.  This often happens on Macs when the font files in the
+pilfonts folder are mistakenly unpacked as text files, rather than as
+binary files.  StuffIt Expander makes this mistake; probably 'tar' does
+not.  If you use a Mac and suffer from this problem, write to me at
+<joe@strout.net> and I'll help you out.  Suggestions on better ways to
+prevent this would be greatly appreciated.
+
+
+
+Other problems?  Write to joe@strout.net or the piddle mailing list.
+

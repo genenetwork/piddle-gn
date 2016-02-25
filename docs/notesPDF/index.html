@@ -1,0 +1,108 @@
+<!DOCTYPE HTML PUBLIC "-//SoftQuad//DTD HoTMetaL PRO 5.0::19981022::extensions to HTML 4.0//EN" "hmpro5.dtd"> 
+ 
+<HTML>
+ 
+<HEAD>
+<TITLE>PDFgen home page</TITLE>
+</HEAD>
+
+<BODY>
+  <!-- This is the standard page header-->
+    <table width="100%" border="0" align="center" bgcolor="Navy">
+	<TR>
+		<TD colspan=4><font size="+3" color="White">
+		Robinson Analytics Ltd.</font>
+		</td>
+	</tr>
+	<TR>
+		<TD><a href="./index.html"><font color="White">Home</font></a></td>
+		<TD><a href="/python.html"><font color="White">Python</font></a></td>
+		<TD><a href="/doublebyte.html"><font color="White">Double-Byte</font></a></td>
+		<TD><a href="/pdfgen/index.html"><font color="White">PDFgen</font></a></td>
+		<TD><a href="/doubletalk/index.html"><font color="White">Doubletalk</font></a></td>
+	</tr>
+	</table>
+
+<H1>PDFgenOverview</H1>
+<P>PDFgen is a pure Python library for generating PDF
+documents.  It lets you do just about anything with text,
+vector graphics and images.  I hope it will be useful for 
+<UL>
+<LI>High-volume corporate reporting and database publishing</LI>
+<LI>Generating PDF on the fly on web sites - server applications could generate PDF output for print in the same way that
+they generate HTML output for browsing</LI>
+<LI>Adding a 'print engine' to Python applications.</LI>
+<LI>Shipping a 'report language' with an application so that users 
+can customize their own reports</LI>
+<LI>Building a documentation system which indexes and archives output</LI>
+<LI>A 'build system' for complex documents such as management accounts,
+statistical reports and scientific papers which need a lot of charts</LI>
+</UL>
+
+<P>PDF is the ideal output format for print - a universal previewer is
+available and on most corporate desktops, along with a base set of fonts. 
+Rather than going direct to a printer, you get an electronic document
+which can be previewed, archived and emailed.</P>
+<H2>Choice of Interfaces</h2>
+<P>There are two interfaces you can use to make PDF documents.  Others may
+happen in future - for example, something that behaves like a Tkinter canvas
+but writes to PDF.
+
+The most important one is the <A HREF="http://piddle.sourceforge.net/">PIDDLE</A> API.  
+PIDDLE stands for &quot Python Interactive Drawing, Does Little Else&quot; it defines
+a standard 'Canvas' interface, with multiple back ends for drawing on various
+platforms.  Currently these include Tkinter, Mac (Quickdraw), Postscript, PDF,
+OpenGL, and the Python Imaging Library.  Pythonwin and wxWindows are under
+development.  This lets you write and reuse (for example) chart code for
+an application window, then do your printed reports by using PDFgen.</P>
+<P>There is also a <b><i>low-level API </i></b>which offers more power and performance,
+but is definitely not cross-platform.  This is quite new and piddlePDF has
+been implemented on top of it - <a href="api.html">read about it here</a>.  
+This is available in the PIDDLE distribution in the module pdfgen.py.  
+
+<H2>Download and Setup</h2>
+<P>Users should be getting PIDDLE from the official site above. For co-developers, 
+I place my latest patches <a href="piddlePDF19991007.zip">here</a>.
+The modules should be unzipped on your Python path.  You can use the low level API
+and run the script testpdfgen.py, which produces <a href="testpdfgen.pdf">test output</a>.
+However, you need the full PIDDLE installation to use the high level API.
+
+<H2>License</H2>
+This release is under the Python license - fully Open Source.  I believe
+this is the best way to get the core stable.  Many planned future features 
+will target the needs of corporates who can afford to pay, so I may offer
+specialized commercial add-ons, C extensions or repackaging in future. 
+<H2>Goals</H2>
+I hope to extend this to provide all of the features needed for a
+serious corporate reporting system with no limits.  This will take
+some time, and needs some commercial partners or customers.
+I am willing to implement new features on a commercial joint-development
+basis.
+<H2>Features Planned</H2>
+As noted, the first goal is stability.  I'm also eagerly awaiting the
+GRAPHITE graphing package, which is based on PIDDLE and should give us
+a superb graphing package.  Other planned features include:
+<UL>
+<LI>Text handling tools - justification and wrapping algorithms.  These 
+could be done in PIDDLE version 2.0</LI>
+<LI>Asian language support - Acrobat 4.0 and PDF 1.3 give the first decent
+solution for portable Asian-language support.  PDFgen will let me write
+the correct language-specific paragraph wrapping rules - for example,
+Ken Lunde's text-wrapping rules for Japanese.  A system for managing
+user-defined characters in any encoding is also planned.</LI>
+<LI>Expanded graphics - PIDDLE is a lowest-common-denominator API.  In addition
+I would like to add coordinate transforms and path operations for those who
+need them</LI>
+<LI> a Page Layout API to handle 'flow objects' built on top of PDFgen and PIDDLE.
+This will reduce the code users need to write and allow us to build hierarchies
+of reusable 'drawable objects' such as tables, charts and frames.</LI>
+<LI> Better support for PDF features - tables of contents, hot links, page
+transition effects</LI>
+</UL>
+
+<ADDRESS>Robinson Analytics Ltd., Wimbledon, London. email
+<A HREF="mailto:andy@robanal.demon.co.uk">mailto:andy@robanal.demon.co.uk</A> 
+</ADDRESS>
+</BODY>
+</HTML>
+

@@ -1,0 +1,10 @@
+Installation:
+
+Piddle is a pure python module so installation only requires that the
+main piddle directory be in your python search path.
+
+More elaborate documention can be found in html.  Point your browser
+at index.html in the docs directory.
+
+Information on using particular backends and some useful utilities can be
+found in docs/notes directories.

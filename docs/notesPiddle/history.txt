@@ -1,0 +1,76 @@
+PIDDLE Version History
+======================
+
+8/05/2000 
+  - reverted "PIL imported as a package" beacause it breaks under win32
+
+
+7/29/2000 (v1.0.b8)
+  - PIL is first imported as a package if possible to avoid name conflicts
+    w/ Zope
+  - class Font made immutable thanks to Fred Drake (propagated to piddle_1.x)
+  - piddlePS clearly defined as single page EPS class (w/ minimal support
+    for multipage documents)
+  - examples/piddleWxDemo.py now makes a little more sense as unused code
+    has been hooked to PAINT event
+  
+2/24/2000
+  - converted piddleTK to use PIL canvas by default to assure that
+    rotated text works.  BaseTKCanvas is still available for native
+    use of TK. 
+
+2/08/2000 
+  - integrated piddleWX into distribution
+
+2/05/2000 (v1.0.b1)
+  - fixed problems with pdf backend regarding printing and pagesizes
+  - added examples and examples/README
+
+10/21/99 (v1.0a7)
+  - updated piddleQD extras to work with MacPython 1.5.2c1
+  - changed piddle.Color to act immutable
+  - misc. bug fixes in piddle, piddlePIL, and piddleVCR
+
+10/07/99 (v1.0a6)
+  - fix of bug in drawArc in piddlePDF
+  - fixed misplaced files (were in notesPDF, now in main piddle directory)
+  - renamed geometry.py to pdfgeom.py
+
+
+10/06/99 (v1.0a5)
+  - substantial changes to the inner workings of piddlePDF
+  - several bug fixes to piddlePS
+
+  
+9/29/99 (v1.0a4)
+  - piddlePS now has font metrics and drawImage support
+  - numerous bug fixes & enhancements to piddlePDF
+  - bug fixes in piddleAI; added PiddifyAI program to convert AI-->PIDDLE
+  - added piddleGL module
+  - fixed bugs and added interactive support to piddleQD
+  - bug fixes and updates to piddlePS and piddleTK
+  - added discipline.py and discipline.txt
+ 
+6/29/99 (v1.0a3)
+  - Added "inch" and "cm" to piddle.py.
+  - Remembered to flush in stringformat.py.
+  - Added pagesizes module (constants for a few common page sizes).
+  - piddleAI updated with bug fix, new constructor interface.
+  - updated piddlePIL constructor interface
+  - added save() method to piddlePIL
+  - added cool new piddletest module
+  - updated constructor interface in piddlePDF, piddlePS, and piddleTK
+  - piddlePS now writes EPS without lots of extra whitespace
+
+6/22/99 (v1.0a2)
+  - Fixed a bug in piddlePIL that caused an exception when drawString was 
+    called with non-integer x or y values.
+  - Added full suite of Netscape/MSIE HTML colors, thanks to Rafal Smotrzyk.
+  - Moved stringformat usage notes into its docstring, and "how it works"
+    notes into comments at the top of the source.
+
+6/17/99 (v1.0a1)
+  - Initial public release.
+
+
+

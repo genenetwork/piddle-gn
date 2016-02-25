@@ -1,0 +1,582 @@
+<html><head><title>Piddle Reference
+</title></head><body bgcolor=#FFFBF0>
+
+<h2>Sections:</h2>
+
+<h3>
+<ol>
+<li><a href="#canvas">class Canvas</a>
+<li><a href="#color">class Color</a>
+<li><a href="#font">class Font</a>
+<li><a href="#callbacks">Interactive Callbacks</a>
+<li><a href="#StateSaver"> class StateSaver </a>
+</ol></h3>
+
+<p><hr><p>
+
+
+<h1><a name="canvas">Canvas</a></h1>
+
+<ul>piddle.Canvas is the base class for any drawing canvas.  Derived classes will implement a particular drawing backend.  The general approach to drawing with PIDDLE is as follows:
+
+<p><ol>
+<li>instantiate a class derived from piddle.Canvas
+<li>call drawing methods on that object, such as drawLine or drawString
+<li>flush the canvas's buffer (flushes the graphics pipeline, updates the  screen, or whatever) </li>
+<li>Finally, if a file-based backend is being used, you'll need to save the canvas to a file.
+</ol>
+
+<p>The Canvas methods are shown below.  Note that the first parameter (self)
+is implied, just as it would be when calling such a method on a Canvas
+instance.
+
+<h3><font color=navy>.isInteractive()</font></h3>
+
+<ul>This method returns 1 if onClick and onOver events are possible, 0 otherwise.  Your app can use this to check whether the particular Canvas you're using is interactive (e.g., screen graphics) or not (e.g., drawing to a PostScript file).
+</ul>
+
+<h3><font color=navy>.canUpdate()</font></h3>
+
+<ul>This method returns 1 if the drawing can be meaningfully updated over time (e.g., screen graphics), 0 otherwise (e.g., drawing to a file).  Note that for some Canvases, updates might be possible but grow expensive -- for example, each drawing command might be stored in a list, and if you continue to draw for hours, performance will suffer or memory will be exhausted.  Such a canvas may return 0.5 for canUpdate().  In that case, your app may want to call .clear() whenever possible, as that should reset things.
+</ul>
+
+<h3><font color=navy>.clear()</font></h3>
+
+<ul>Call this method to clear and reset the Canvas.  For screen graphics, the drawing area should be
+erased; for file Canvases, the file should be emptied or reset to the beginning, or possibly start a
+new page if the Canvas supports multipage files; and so on.  Some types of Canvases may not be able to
+meaningfully clear(), and may raise an exception if you try.  </ul>
+
+<h3><font color=navy>.flush()</font></h3>
+
+<ul>Call this method whenever you're done drawing or pausing long enough
+that you want the drawing to be updated.  Screen Canvases will then make
+sure the screen is up to date; file canvases will flush their file buffers;
+etc.  Some Canvases have no need to flush(), and will simply do nothing,
+but you should always call this method just to be safe.  </ul>
+
+<h3><font color=navy>.save(file=None, format=None)</font></h3>
+<ul>
+<li><font color=green>file</font>: an optional file name or file object to save to.  By default, the name of the canvas specified in the constructor is used as a filename.
+<li><font color=green>format</font>: an optional file type specifying a specific file format This argument is specific to the backend used and may be ignored.
+</ul>
+
+<p> <ul>Call this method to write a the current canvas to a file.  Only
+applies to file-based backends such as piddlePDF, piddlePS, and piddlePIL.
+Will do nothing when called for backends that do not support saving to a
+file.  You may pass a filename as the 'file' argument or a file object
+which implements a "write" method.  The default is to use the Canvas's
+'name' attribute as the file name.  The optional type argument may be used
+by a backend to select different file formats when available.  This should
+be the final action for a canvas.  Though some backends may allow further
+drawing after a save() call, you should assume that the canvas is immutable
+for maximum portability. </ul>
+
+<h3><font color=navy>.setInfoLine(s)</font></h3>
+
+<ul>
+<li><font color=green>s</font>: a string to display
+</ul>
+
+<p><ul>
+This method applies only to interactive Canvases, and is used to display a string to the user in a non-blocking way.  Generally it will appear in a one-line display at the top or bottom of the window or screen.  Appropriate uses are showing coordinates, or providing a bit of help or instruction to the user.  The string given is not saved and is completely ignored by noninteractive renderers, so it's OK to call this function frequently (e.g., whenever the mouse moves), but don't use it for any information you would want stored to a printout or file.
+</ul>
+
+<h3><font color=navy>.drawLine(x1, y1, x2, y2, [color], [width])</font></h3>
+
+<ul>
+<li><font color=green>x1</font>: horizontal (right) coordinate of the starting point
+<li><font color=green>y1</font>: vertical (down) coordinate of the starting point
+<li><font color=green>x2</font>: horizontal (right) coordinate of the ending point
+<li><font color=green>y2</font>: vertical (down) coordinate of the ending point
+<li><font color=green>color</font>: Color of the line to draw; defaults to the Canvas's defaultLineColor
+<li><font color=green>width</font>: width of the line to draw; defaults to the Canvas's defaultLineWidth
+</ul>
+
+<p><ul>
+This function draws a straight line between the points x1,y1 and x2,y2.  Thick lines will be centered on the given coordinates.  Line end style varies with the particular canvas, and is more noticable with thick lines.  
+</ul>
+
+<h3><font color=navy>.drawLines(lineList, [color], [width])</font></h3>
+
+<ul>
+<li><font color=green>lineList</font>: a list of line coordinates, each an (x1,y1,x2,y2) tuple or list
+<li><font color=green>color</font>: Color of the line to draw; defaults to the Canvas's defaultLineColor
+<li><font color=green>width</font>: width of the line to draw; defaults to the Canvas's defaultLineWidth
+</ul>
+
+<p><ul>
+This function draws a set of lines of uniform color and width.  When drawing a large number of lines (e.g., a grid), this function is likely to be more efficient than calling drawLine() for each one.  Note that the lines are <i>not</i> joined together; each one is drawn separately.  The final result should look the same as if drawLine() had been called for each element of lineList.
+</ul>
+
+<h3><font color=navy>.drawString(s, x, y, [font], [color], [angle])</font></h3>
+
+<ul>
+<li><font color=green>s</font>: the string to draw
+<li><font color=green>x</font>: horizontal (right) coordinate of the starting position for the text
+<li><font color=green>y</font>: vertical (down) coordinate of the starting position for the text
+<li><font color=green>font</font>: font face and style for drawing; defaults to the Canvas's defaultFont
+<li><font color=green>color</font>: Color of the drawn text; defaults to the Canvas's defaultLineColor
+<li><font color=green>angle</font>: angle (degrees counter-clockwise from +X) at which the text should be drawn; defaults to 0
+</ul>
+
+<p><ul>This method draws a string.  The starting position is the left side of the first character, on the baseline (e.g., the bottom-left pixel in an "m").  Carriage returns ('\n') in the string will cause the drawing "pen" to move to the next line, at the normal single-spaced line spacing for the font.  (If you need more control over line spacing, justification, etc., then break the string into lines yourself, measure the strings to be drawn, and draw them in position one line at a time.)
+
+<p><font color=green>angle</font> is used to draw rotated text.  It should be noted that on some backends, rotated text may be rather slow, but it should always be supported.
+</ul>
+
+<h3><font color=navy>.drawPolygon(pointlist, [edgeColor], [edgeWidth], [fillColor], [closed])</font></h3>
+
+<ul>
+<li><font color=green>pointlist</font>: a list of (x,y) tuples defining the edges of the polygon
+<li><font color=green>edgeColor</font>: color of the polygon edges; defaults to the Canvas's defaultLineColor
+<li><font color=green>edgeWidth</font>: width of the polygon edges; defaults to the Canvas's defaultLineWidth
+<li><font color=green>fillColor</font>: color of the polygon interior; defaults to the Canvas's defaultFillColor
+<li><font color=green>closed</font>: if 1, adds an extra segment smoothly connecting the first vertex to the last; defaults to 0
+</ul>
+
+<p><ul>This method draws a polygon, and is a real workhorse; it forms the basis of the default implementations of most other drawing methods.  New piddle backends must implement this method, and do so carefully, keeping in mind the following points.
+
+<p><b>Filling</b>: we use the "odd-even" rule of filling.  As a result, if you make a five-pointed star, the center pentagon is not filled.
+
+<p><b>Closure</b>: the filling of a polygon is automatically "closed" in that there will be a straight line of color from the last vertex to the first.  The "closed" parameter applies to the edge; if true, then there will also be an edge drawn between those points.
+
+<p>Users should use the "closed" parameter rather than passing a vertex list with the first and last vertices the same.  This allows high-resolution backends (like postscript) to make sure all the edges join together properly.
+
+<p>Finally, note that when thick edges are drawn, the exact shape of the corners is undefined and may vary from one piddle implementation to another.
+</ul>
+
+
+<h3><font color=navy>.drawRect(x1, y1, x2, y2, [edgeColor], [edgeWidth], [fillColor], [closed])</font></h3>
+
+<ul>
+<li><font color=green>x1</font>: left side of rectangle to draw
+<li><font color=green>y1</font>: top of rectangle to draw
+<li><font color=green>x2</font>: right side of rectangle to draw
+<li><font color=green>y2</font>: bottom of rectangle to draw
+<li><font color=green>edgeColor</font>: color of the rectangle edges; defaults to the Canvas's defaultLineColor
+<li><font color=green>edgeWidth</font>: width of the rectangle edges; defaults to the Canvas's defaultLineWidth
+<li><font color=green>fillColor</font>: color of the rectangle interior; defaults to the Canvas's defaultFillColor
+</ul>
+
+<p><ul>
+This function draws a rectangle, aligned with to the coordinate system (i.e., top and bottom are horizontal, sides are vertical).  <font color=green>x1</font> should be less than <font color=green>x2</font>, and <font color=green>y1</font> should be less than <font color=green>y2</font>.  This call is functionally equivalent to:
+<pre>
+	.drawPolygon([(x1,y1),(x2,y1),(x2,y2),(x1,y2)],
+	             edgeColor, edgeWidth, fillColor, closed=1)
+</pre>
+But using drawRect is easier to read, and may be considerably faster in some implementations, so its use is recommended whenever possible.
+</ul>
+
+
+<h3><font color=navy>.drawRoundRect(x1, y1, x2, y2, [rx], [ry], [edgeColor], [edgeWidth], [fillColor], [closed])</font></h3>
+
+<ul>
+<li><font color=green>x1</font>: left side of rectangle to draw
+<li><font color=green>y1</font>: top of rectangle to draw
+<li><font color=green>x2</font>: right side of rectangle to draw
+<li><font color=green>y2</font>: bottom of rectangle to draw
+<li><font color=green>rx</font>: horizontal radius of corner ellipse; defaults to 8
+<li><font color=green>ry</font>: vertical radius of corner ellipse; defaults to 8
+<li><font color=green>edgeColor</font>: color of the roundrect edges; defaults to the Canvas's defaultLineColor
+<li><font color=green>edgeWidth</font>: width of the roundrect edges; defaults to the Canvas's defaultLineWidth
+<li><font color=green>fillColor</font>: color of the roundrect interior; defaults to the Canvas's defaultFillColor
+</ul>
+
+<p><ul>
+This function draws a rectangle with rounded corners.  The horizontal straight edges stop <font color=green>rx</font> units away from the vertical sides, and the vertical sides stop <font color=green>ry</font> units away from the top and bottom.  The gaps are joined with arcs having radii <font color=green>rx</font> and <font color=green>ry</font>.
+</ul>
+
+
+
+<h3><font color=navy>.drawEllipse(x1, y1, x2, y2, [edgeColor], [edgeWidth], [fillColor], [closed])</font></h3>
+
+<ul>
+<li><font color=green>x1</font>: leftmost point of ellipse to draw
+<li><font color=green>y1</font>: topmost point of ellipse to draw
+<li><font color=green>x2</font>: rightmost point of ellipse to draw
+<li><font color=green>y2</font>: bottommost point of ellipse to draw
+<li><font color=green>edgeColor</font>: color of the ellipse edges; defaults to the Canvas's defaultLineColor
+<li><font color=green>edgeWidth</font>: width of the ellipse edges; defaults to the Canvas's defaultLineWidth
+<li><font color=green>fillColor</font>: color of the ellipse interior; defaults to the Canvas's defaultFillColor
+</ul>
+
+<p><ul>
+This functions draws an ellipse inscribed within the rectangle x1,y1, x2,y2.
+Note that the same restrictions on coordinates which apply to drawRect, also apply to drawRoundRect, drawOval, and drawArc.
+</ul>
+
+<h3><font color=navy>.drawArc(x1, y1, x2, y2, [startAng], [extent], [edgeColor], [edgeWidth], [fillColor], [closed])</font></h3>
+
+<ul>
+<li><font color=green>x1</font>: leftmost point of ellipse to draw
+<li><font color=green>y1</font>: topmost point of ellipse to draw
+<li><font color=green>x2</font>: rightmost point of ellipse to draw
+<li><font color=green>y2</font>: bottommost point of ellipse to draw
+<li><font color=green>startAng</font>: angle at which the arc begins; defaults to 0 (zero)
+<li><font color=green>extent</font>: angle covered by the arc; defaults to 360
+<li><font color=green>edgeColor</font>: color of the arc edge; defaults to the Canvas's defaultLineColor
+<li><font color=green>edgeWidth</font>: width of the arc edge; defaults to the Canvas's defaultLineWidth
+<li><font color=green>fillColor</font>: color of the wedge; defaults to the Canvas's defaultFillColor
+</ul>
+
+<p><ul>
+This functions draws part of an ellipse.  Angles are given in degrees, where
+0 (zero) is to the right at location (x2,(y1+y2)/2), and increase counter-clockwise.  When filled, the filled portion is a wedge, like a slice of pie.
+</ul>
+
+
+<h3><font color=navy>.drawFigure(partList, [edgeColor], [edgeWidth], [fillColor], [closed])</font></h3>
+
+<ul>
+<li><font color=green>partList</font>: list of lines, curves, and arcs (see below)
+<li><font color=green>edgeColor</font>: color of the arc edge; defaults to the Canvas's defaultLineColor
+<li><font color=green>edgeWidth</font>: width of the arc edge; defaults to the Canvas's defaultLineWidth
+<li><font color=green>fillColor</font>: color of the wedge; defaults to the Canvas's defaultFillColor
+<li><font color=green>closed</font>: if 1, adds an extra segment smoothly connecting the first vertex to the last; defaults to 0
+</ul>
+
+<p><ul>
+This method is used to define a complex figure, much like a polygon, but the sides of which may be arcs or curves.  The required parameter <font color=green>partList</font> is a list of tuples, each tuple having one of the following formats:<p>
+<ul>
+(figureLine, <i>x1</i>, <i>y1</i>, <i>x2</i>, <i>y2</i>)<br>
+(figureArc, <i>x1</i>, <i>y1</i>, <i>x2</i>, <i>y2</i>, <i>startAng</i>,
+		<i>extent</i>)<br>
+(figureCurve, <i>x1</i>, <i>y1</i>, <i>x2</i>, <i>y2</i>,
+	<i>x3</i>, <i>y3</i>, <i>x4</i>, <i>y4</i>)<br>
+</ul>
+
+<p>
+<b>figureLine</b>, <b>figureArc</b>, and <b>figureCurve</b> are constants defined in piddle.py, and the remaining elements are numerical parameters defining the line, arc, or curve respectively.  These elements are joined
+by straight lines, from the end of one to the start of the next.  The
+resulting figure can be filled like a polygon, or just outlined.
+
+<p>This method is likely to be slower for screen graphics than separate
+calls to drawArc, drawCurve, and drawLine (where applicable).  On the other
+hand, drawFigure is likely to produce a higher-quality result for 
+high-resolution renderers such as PostScript and PDF. 
+</ul>
+
+<h3><font color=navy>.drawImage(image, x1, y1, [x2], [y2])</font></h3>
+
+<ul>
+<li><font color=green>image</font>: a Python Imaging Library Image object
+<li><font color=green>x1</font>: leftmost edge of destination rectangle
+<li><font color=green>y1</font>: topmost edge of destination rectangle
+<li><font color=green>x2</font>: rightmost edge of destination rectangle
+	(defaults to <font color=green>x1</font> plus the image width)
+<li><font color=green>y2</font>: bottom of destination rectangle
+	(defaults to <font color=green>y1</font> plus the image height)
+</ul>
+
+<p><ul>
+Use this method to plot a pixel image, in the form of a PIL Image object.  If you just specify <font color=green>x1</font> and <font color=green>y1</font>, the image will be drawn with with its top-left corner at that location, without scaling.  If you also specify <font color=green>x2</font> and <font color=green>y2</font>, then the image will be scaled as needed to fit the given rectangle.
+
+<p>Note that there is no way in piddle to plot a subregion of an image; however, PIL itself provides ways to create a new image as a subregion of an existing one.
+</ul>
+
+</ul><!-- end of class Canvas -->
+
+
+<p><hr>
+<h1><a name="color">Color</a></h1><ul>
+
+<b>piddle.Color</b> is an encapsulation of the red/green/blue color space, used for specifying all colors in PIDDLE.  Member variables <font color=green>red</font>, <font color=green>green</font>, and <font color=green>blue</font> are public and may be safely read or modified.
+
+<p>You can also use standard arithmatic operators (+, -, *, /) to modify colors; e.g., if you have a color "aqua", then "aqua/2" would be half as intense.
+
+<p>Colors have a comparison function; two colors are considered equal if their red, green, and blue components are all equal.  Otherwise, the colors are ordered first by red, then by green, and finally by blue.
+
+<p>Colors are hashable.  So if, for example, you use a color as a key in a dictionary, another color equal to it will map to the same entry, even if it is a different Color object in memory.
+
+<p>Colors may be constructed by passing the red, green, and blue values to the constructor, e.g.:
+
+<ul><pre>myColor = Color(1, 0.6, 0)      # light brown</pre>
+</ul>
+	
+Alternatively, a factory function called <b><font color=navy>HexColor</font></b> may be used.  This converts a hex string (such as "AABBCC") or an integer (such as 0xAABBCC) into a color.  Each byte (in our example, "AA" for red, "BB" for blue, and "CC" for green) is mapped to a color component value between 0 and 1 inclusive.  This is the way colors are defined in HTML, and is often a convenient means of specification.
+
+<p><h3>Color Constants</h3>
+PIDDLE defines a large number of color constants, mostly taken from the HTML standard.  The predefined color constants are shown in the table below.
+
+<center>
+<table bgcolor=white><tr><td width=25%>
+<table padding=0 width=100%>
+<tr><th bgcolor=#F0F8FF>aliceblue</th></tr>
+<tr><th bgcolor=#FAEBD7>antiquewhite</th></tr>
+<tr><th bgcolor=#00FFFF>aqua</th></tr>
+<tr><th bgcolor=#7FFFD4>aquamarine</th></tr>
+<tr><th bgcolor=#F0FFFF>azure</th></tr>
+<tr><th bgcolor=#F5F5DC>beige</th></tr>
+<tr><th bgcolor=#FFE4C4>bisque</th></tr>
+<tr><th bgcolor=#000000><font color=white>black</font></th></tr>
+<tr><th bgcolor=#FFEBCD>blanchedalmond</th></tr>
+<tr><th bgcolor=#0000FF>blue</th></tr>
+<tr><th bgcolor=#8A2BE2>blueviolet</th></tr>
+<tr><th bgcolor=#A52A2A>brown</th></tr>
+<tr><th bgcolor=#DEB887>burlywood</th></tr>
+<tr><th bgcolor=#5F9EA0>cadetblue</th></tr>
+<tr><th bgcolor=#7FFF00>chartreuse</th></tr>
+<tr><th bgcolor=#D2691E>chocolate</th></tr>
+<tr><th bgcolor=#FF7F50>coral</th></tr>
+<tr><th bgcolor=#6495ED>cornflower</th></tr>
+<tr><th bgcolor=#FFF8DC>cornsilk</th></tr>
+<tr><th bgcolor=#DC143C>crimson</th></tr>
+<tr><th bgcolor=#00FFFF>cyan</th></tr>
+<tr><th bgcolor=#00008B><font color=white>darkblue</font></th></tr>
+<tr><th bgcolor=#008B8B>darkcyan</th></tr>
+<tr><th bgcolor=#B8860B>darkgoldenrod</th></tr>
+<tr><th bgcolor=#A9A9A9>darkgray</th></tr>
+<tr><th bgcolor=#006400>darkgreen</th></tr>
+<tr><th bgcolor=#BDB76B>darkkhaki</th></tr>
+<tr><th bgcolor=#8B008B>darkmagenta</th></tr>
+<tr><th bgcolor=#556B2F>darkolivegreen</th></tr>
+<tr><th bgcolor=#FF8C00>darkorange</th></tr>
+<tr><th bgcolor=#9932CC>darkorchid</th></tr>
+<tr><th bgcolor=#8B0000>darkred</th></tr>
+<tr><th bgcolor=#E9967A>darksalmon</th></tr>
+<tr><th bgcolor=#8FBC8B>darkseagreen</th></tr>
+<tr><th bgcolor=#483D8B>darkslateblue</th></tr>
+</td></tr></table></td><td width=25%>
+<table padding=0 width=100%><tr><td>
+<tr><th bgcolor=#2F4F4F><font color=white>darkslategray</font></th></tr>
+<tr><th bgcolor=#00CED1>darkturquoise</th></tr>
+<tr><th bgcolor=#9400D3>darkviolet</th></tr>
+<tr><th bgcolor=#FF1493>deeppink</th></tr>
+<tr><th bgcolor=#00BFFF>deepskyblue</th></tr>
+<tr><th bgcolor=#696969>dimgray</th></tr>
+<tr><th bgcolor=#1E90FF>dodgerblue</th></tr>
+<tr><th bgcolor=#B22222>firebrick</th></tr>
+<tr><th bgcolor=#FFFAF0>floralwhite</th></tr>
+<tr><th bgcolor=#228B22>forestgreen</th></tr>
+<tr><th bgcolor=#FF00FF>fuchsia</th></tr>
+<tr><th bgcolor=#DCDCDC>gainsboro</th></tr>
+<tr><th bgcolor=#F8F8FF>ghostwhite</th></tr>
+<tr><th bgcolor=#FFD700>gold</th></tr>
+<tr><th bgcolor=#DAA520>goldenrod</th></tr>
+<tr><th bgcolor=#808080>gray (or grey)</th></tr>
+<tr><th bgcolor=#008000>green</th></tr>
+<tr><th bgcolor=#ADFF2F>greenyellow</th></tr>
+<tr><th bgcolor=#F0FFF0>honeydew</th></tr>
+<tr><th bgcolor=#FF69B4>hotpink</th></tr>
+<tr><th bgcolor=#CD5C5C>indianred</th></tr>
+<tr><th bgcolor=#4B0082><font color=white>indigo</font></th></tr>
+<tr><th bgcolor=#FFFFF0>ivory</th></tr>
+<tr><th bgcolor=#F0E68C>khaki</th></tr>
+<tr><th bgcolor=#E6E6FA>lavender</th></tr>
+<tr><th bgcolor=#FFF0F5>lavenderblush</th></tr>
+<tr><th bgcolor=#7CFC00>lawngreen</th></tr>
+<tr><th bgcolor=#FFFACD>lemonchiffon</th></tr>
+<tr><th bgcolor=#ADD8E6>lightblue</th></tr>
+<tr><th bgcolor=#F08080>lightcoral</th></tr>
+<tr><th bgcolor=#E0FFFF>lightcyan</th></tr>
+<tr><th bgcolor=#FAFAD2>lightgoldenrodyellow</th></tr>
+<tr><th bgcolor=#90EE90>lightgreen</th></tr>
+<tr><th bgcolor=#D3D3D3>lightgrey</th></tr>
+<tr><th bgcolor=#FFB6C1>lightpink</th></tr>
+</td></tr></table></td><td width=25%>
+<table padding=0 width=100%><tr><td>
+<tr><th bgcolor=#FFA07A>lightsalmon</th></tr>
+<tr><th bgcolor=#20B2AA>lightseagreen</th></tr>
+<tr><th bgcolor=#87CEFA>lightskyblue</th></tr>
+<tr><th bgcolor=#778899>lightslategray</th></tr>
+<tr><th bgcolor=#B0C4DE>lightsteelblue</th></tr>
+<tr><th bgcolor=#FFFFE0>lightyellow</th></tr>
+<tr><th bgcolor=#00FF00>lime</th></tr>
+<tr><th bgcolor=#32CD32>limegreen</th></tr>
+<tr><th bgcolor=#FAF0E6>linen</th></tr>
+<tr><th bgcolor=#FF00FF>magenta</th></tr>
+<tr><th bgcolor=#800000>maroon</th></tr>
+<tr><th bgcolor=#66CDAA>mediumaquamarine</th></tr>
+<tr><th bgcolor=#0000CD>mediumblue</th></tr>
+<tr><th bgcolor=#BA55D3>mediumorchid</th></tr>
+<tr><th bgcolor=#9370DB>mediumpurple</th></tr>
+<tr><th bgcolor=#3CB371>mediumseagreen</th></tr>
+<tr><th bgcolor=#7B68EE>mediumslateblue</th></tr>
+<tr><th bgcolor=#00FA9A>mediumspringgreen</th></tr>
+<tr><th bgcolor=#48D1CC>mediumturquoise</th></tr>
+<tr><th bgcolor=#C71585>mediumvioletred</th></tr>
+<tr><th bgcolor=#191970><font color=white>midnightblue</font></th></tr>
+<tr><th bgcolor=#F5FFFA>mintcream</th></tr>
+<tr><th bgcolor=#FFE4E1>mistyrose</th></tr>
+<tr><th bgcolor=#FFE4B5>moccasin</th></tr>
+<tr><th bgcolor=#FFDEAD>navajowhite</th></tr>
+<tr><th bgcolor=#000080><font color=white>navy</font></th></tr>
+<tr><th bgcolor=#FDF5E6>oldlace</th></tr>
+<tr><th bgcolor=#808000>olive</th></tr>
+<tr><th bgcolor=#6B8E23>olivedrab</th></tr>
+<tr><th bgcolor=#FFA500>orange</th></tr>
+<tr><th bgcolor=#FF4500>orangered</th></tr>
+<tr><th bgcolor=#DA70D6>orchid</th></tr>
+<tr><th bgcolor=#EEE8AA>palegoldenrod</th></tr>
+<tr><th bgcolor=#98FB98>palegreen</th></tr>
+<tr><th bgcolor=#AFEEEE>paleturquoise</th></tr>
+</td></tr></table></td><td width=25%>
+<table padding=0 width=100%><tr><td>
+<tr><th bgcolor=#DB7093>palevioletred</th></tr>
+<tr><th bgcolor=#FFEFD5>papayawhip</th></tr>
+<tr><th bgcolor=#FFDAB9>peachpuff</th></tr>
+<tr><th bgcolor=#CD853F>peru</th></tr>
+<tr><th bgcolor=#FFC0CB>pink</th></tr>
+<tr><th bgcolor=#DDA0DD>plum</th></tr>
+<tr><th bgcolor=#B0E0E6>powderblue</th></tr>
+<tr><th bgcolor=#800080>purple</th></tr>
+<tr><th bgcolor=#FF0000>red</th></tr>
+<tr><th bgcolor=#BC8F8F>rosybrown</th></tr>
+<tr><th bgcolor=#4169E1>royalblue</th></tr>
+<tr><th bgcolor=#8B4513>saddlebrown</th></tr>
+<tr><th bgcolor=#FA8072>salmon</th></tr>
+<tr><th bgcolor=#F4A460>sandybrown</th></tr>
+<tr><th bgcolor=#2E8B57>seagreen</th></tr>
+<tr><th bgcolor=#FFF5EE>seashell</th></tr>
+<tr><th bgcolor=#A0522D>sienna</th></tr>
+<tr><th bgcolor=#C0C0C0>silver</th></tr>
+<tr><th bgcolor=#87CEEB>skyblue</th></tr>
+<tr><th bgcolor=#6A5ACD>slateblue</th></tr>
+<tr><th bgcolor=#708090>slategray</th></tr>
+<tr><th bgcolor=#FFFAFA>snow</th></tr>
+<tr><th bgcolor=#00FF7F>springgreen</th></tr>
+<tr><th bgcolor=#4682B4>steelblue</th></tr>
+<tr><th bgcolor=#D2B48C>tan</th></tr>
+<tr><th bgcolor=#008080>teal</th></tr>
+<tr><th bgcolor=#D8BFD8>thistle</th></tr>
+<tr><th bgcolor=#FF6347>tomato</th></tr>
+<tr><th bgcolor=#40E0D0>turquoise</th></tr>
+<tr><th bgcolor=#EE82EE>violet</th></tr>
+<tr><th bgcolor=#F5DEB3>wheat</th></tr>
+<tr><th bgcolor=#FFFFFF>white</th></tr>
+<tr><th bgcolor=#F5F5F5>whitesmoke</th></tr>
+<tr><th bgcolor=#FFFF00>yellow</th></tr>
+<tr><th bgcolor=#9ACD32>yellowgreen</th></tr>
+</td></tr></table>
+
+</table>
+</center>
+
+<p><h3>"Transparent"</h3>
+
+There is a special predefined color used to indicate where no drawing should be done.  It is called <b>transparent</b> and is defined as Color(-1, -1, -1).  Specify this as the fill color for shapes you don't want filled, or the line color for shapes you don't want outlined.
+
+</ul><!-- end of class Color -->
+
+<p><hr>
+<h1><a name="font">Font</a></h1><ul>
+
+<b>Font</b> encapsulates a font and font style.  It is used to tell PIDDLE what font should be used for drawing text; it does not contain the actual font definition (which is specific to the backend), but only a request for a certain font and style.  It contains the following public data members:
+
+<p><ul>
+<li><b>face</b>: this is a font name (e.g., "helvetica"), or a list of font names (e.g., ["times", "helvetica", "serif"]).  When a list is given, PIDDLE will use the first name on the list which matches a font available in the backend.  All PIDDLE canvases should support at least the following fonts:
+
+<ul>
+<li><b>times</b>
+<li><b>helvetica</b>
+<li><b>courier</b>
+<li><b>symbol</b>
+<li><b>monospaced</b> (often equivalent to courier)
+<li><b>serif</b> (often equivalent to times)
+<li><b>sansserif</b> (often equivalent to helvetica)
+</ul>
+
+<p>Thus, it's advisable to always end your list of fonts with one of the six names above, which should always be available.<p>
+
+<li><b>bold</b>: indicates that the font should be drawn in boldface.
+<li><b>italic</b>: indicates that the font should be italicized.
+<li><b>underline</b>: indicates that the font should be underlined.
+<li><b>size</b>: the size of the font, in points; roughly equal to the distance between baselines if two lines of text were drawn such that the descenders of one line touch the tall letters of the next.
+
+</ul>
+
+<p>It's important to note that the attributes above are merely requests to the PIDDLE backend.  Font handling and capability varies widely among various backends; some options may not be supported.
+
+</ul><!-- end of class Font -->
+
+<p><hr>
+<h1><a name="callbacks">Interactive Callbacks</a></h1><ul>
+
+Some PIDDLE canvases may be interactive; that is, they provide support not only for drawing, but also for receiving input from the user.  Such interaction takes place through <i>callbacks</i>: functions you define and attach to your canvas, to be called by the canvas whenever an event occurs.
+
+<h3><font color=navy>onClick(canvas, x, y)</font></h3>
+
+<ul>
+<li><font color=green>canvas</font>: the Canvas which was clicked
+<li><font color=green>x</font>: the distance between the point clicked and the left side of the canvas
+<li><font color=green>y</font>: the distance between the point clicked and the top of the canvas
+</ul>
+
+<p><ul>
+This callback is invoked when the user clicks the primary mouse button on the canvas.  Your function receives a reference to the canvas clicked, and the x,y coordinates of the location clicked (in canvas coordinates, i.e., the same coordinate system used for drawing).
+</ul>
+
+
+<h3><font color=navy>onOver(canvas, x, y)</font></h3>
+
+<ul>
+<li><font color=green>canvas</font>: the Canvas the mouse cursor is over
+<li><font color=green>x</font>: the distance between the mouse cursor and the left side of the canvas
+<li><font color=green>y</font>: the distance between the mouse cursor and the top of the canvas
+</ul>
+
+<p><ul>
+This callback is invoked whenever the mouse cursor is moved into or within a Canvas.  Your function receives a reference to the canvas the cursor is over, and cursor's x,y coordinates.
+</ul>
+
+
+<h3><font color=navy>onKey(canvas, key, modifiers)</font></h3>
+
+<ul>
+<li><font color=green>canvas</font>: the Canvas receiving a keypress
+<li><font color=green>key</font>: the character of the key pressed
+<li><font color=green>modifiers</font>: modifier keys also pressed (see below)
+</ul>
+
+<p><ul>
+This callback is invoked when a key is pressed while your canvas is "active" (the exact meaning of which depends on the particulars of the backend and its environment).  The <font color=green>key</font> parameter is generally the character of the key pressed; e.g., "a" if the user presses the "a" key.  Special keys will be indicated with one of the following constants defined in <b>piddle.py</b>:
+<pre>
+		keyBksp = '\010'		# (erases char to left of cursor)
+		keyDel = '\177'			# (erases char to right of cursor)
+		keyLeft = '\034'		# arrow keys...
+		keyRight = '\035'
+		keyUp = '\036'
+		keyDown = '\037'
+		keyPgUp = '\013'		# page-up
+		keyPgDn = '\014'		# page-down
+		keyHome = '\001'		# "home" (top of document)
+		keyEnd = '\004'			# "end" (bottom of document)
+		keyClear = '\033'		# "clear" (clear all data)
+		keyTab = '\t'			# tab key
+</pre>
+
+Keys which are not printable and not one of the above special cases, (e.g., "F6") may not be reported by the canvas -- certainly, they cannot be reported in a portable manner.
+
+<p>The <font color=green>modifiers</font> parameter is an integer, and may be any combination of the following two constants:
+<pre>
+		modShift = 1		# shift key was also held
+		modControl = 2		# control key was also held
+</pre>
+
+Note, however, that "shift key" and "control" key may not be literal; certain platforms may need to use other keys ("Alt", "Meta", "Command", etc.) instead.  Users of such backends will need to consult the notes which come with that particular Canvas type.
+
+</ul>
+
+</ul><!-- end of interactive callbacks -->
+
+
+<h1><a name="StateSaver"> StateSaver </a></h1>
+<ul>
+This is a little utility class for saving and restoring the
+	default drawing parameters of a canvas.  To use it, add a line
+	like this before changing any of the parameters:
+<pre>
+		saver = StateSaver(myCanvas)
+</pre>
+	
+	then, when "saver" goes out of scope, it will automagically
+	restore the drawing parameters of myCanvas.
+</ul> <!-- end of StateSaver --!> 
+
+<p><hr>
+<i>Last Updated:
+16 January 2000
+</i>
+
+</body></html>

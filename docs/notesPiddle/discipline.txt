@@ -1,0 +1,8 @@
+The "discipline" module is a little test program for verifying that all
+the methods of a child class obey the interface (parameter names) of 
+the parent class.  In particular, it does this for PIDDLE classes, but
+the code could be adapted to check any parent/child pair.
+
+
+-- Joe Strout (joe@strout.net)
+September 1999

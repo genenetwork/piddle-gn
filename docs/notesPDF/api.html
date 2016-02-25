@@ -1,0 +1,456 @@
+<!DOCTYPE HTML PUBLIC "-//SoftQuad//DTD HoTMetaL PRO 5.0::19981022::extensions to HTML 4.0//EN" "hmpro5.dtd"> 
+ 
+<HTML>
+ 
+<HEAD>
+<TITLE>PDFgen API</TITLE>
+</HEAD>
+
+<BODY>
+  <!-- This is the standard page header-->
+    <table width="100%" border="0" align="center" bgcolor="Navy">
+	<TR>
+		<TD colspan=4><font size="+3" color="White">
+		Robinson Analytics Ltd.</font>
+		</td>
+	</tr>
+	<TR>
+		<TD><a href="/index.html"><font color="White">Home</font></a></td>
+		<TD><a href="/python.html"><font color="White">Python</font></a></td>
+		<TD><a href="/doublebyte.html"><font color="White">Double-Byte</font></a></td>
+		<TD><a href="/pdfgen/index.html"><font color="White">PDFgen</font></a></td>
+		<TD><a href="/doubletalk/index.html"><font color="White">Doubletalk</font></a></td>
+	</tr>
+	</table>
+
+<H1>PDFgen API Overview</H1>
+This describes what I am trying to do with the low-level drawing API exposed 
+by the class pdfgen.Canvas.  You might want to read it in tandem with the
+<a href="testpdfgen.pdf">test script output</a>.
+
+<H2>Design Goals</h2>
+The first usable API I had was the PIDDLE one.  However, that led to inefficiencies
+in both Python code and the PDF generated.  Each shape-drawing method would EITHER
+specify line width, color, fonts etc. directly, or use the current default ones.
+This means either doing a lot of work in Python to see what needs to be changed,
+or just always setting the graphics properties for every shape, which made a lot of
+PDF.  We also had two layers of translation going on - from PIDDLE fonts to 
+Postscript font names to internal names - leading to messy code.
+
+To solve this, I have produced a low-level (and this high-end) API which
+is completely independent of PIDDLE, the implemented piddlePDF on top of it.
+
+This API may be of interest in its own right, but is also a possible model
+for other formats/platforms which support paths, clipping and transforms;
+PostScript, Java2D and Windows spring to mind.
+
+This interface is much cleaner and aims to follow a Postscript imaging model with 
+the following key features:
+<ul>
+	<li type="disc">You must explicitly set line color, width, fonts etc. before 
+	drawing anything.  For example, if you call setLineWidth(), the mew width persists
+	until the end of the page or until you call it again. This means no state-analyzing 
+	or state-tracking code is needed; each drawing routine can just splurge text 
+	out to the disc.</li>
+	<li type="1">The only fonts used are valid Postscript font names.</li>
+	<li type="1">The only color used are (R, G, B) arguments.</li>
+	<li type="1">You draw by creating paths, which are completely arbitrary shapes;
+	these may be stroked (i.e. have their outline drawn) or filled or both.</li>
+</ul>
+Robert Kern and I did a lot of work on efficient geometry,and I am particularly happy 
+with the Path model - Python has to do almost no work (so goes faster), and it is 
+hard for the user to write illegal sequences of PDF.
+
+
+<H2>Status and Things to Do</H2>
+This is the first release of this API so there are bound to be bugs.  I welcome
+all contributions.  If you find a non-obvious bug, try to send a script which
+reproduces it.
+<P>I intend to add the following features shortly:
+<ol>
+	<li>Page compression options
+	<li>An Outline Tree
+	<li>Better tracking of the text cursor and graphics state
+	<li>Improved cross-referencing of objects in the file
+</ol>
+I'd particularly appreciate help on the test script - adding in more tests
+and words so that we end up with a user guide which tries each feature and
+talk through it.  I'll entertain feature requests, but my time is limited 
+until January.
+
+
+<H2>API overview</H2>
+We'll run through the main functions by category. The categories are:
+<ol>
+	<li>Document Creation and Management
+	<li>Text Manipulation
+	<li>Line Drawing Methods
+	<li>Shape drawing Methods
+	<li>Graphics State Methods
+	<li>Path Drawing
+	<li>Clipping with Paths
+	<li>Coordinate Transformations
+	<li>Special PDF Effects
+</ol>
+
+<H3>Document Creation and Management</h3>
+<pre>
+    def __init__(self,filename,pagesize=(595.27,841.89), bottomup = 1):
+		"""Creates a new document. Filename is mandatory.  You can also 
+		set the page size (which defaults to A4), and whether you
+		want a top-down coordinate system instead of bottom-up."""
+		
+    def setAuthor(self, author):
+        self._doc.setAuthor(author)
+        
+    def setTitle(self, title):
+    	"Embeds info in the PDF file"
+        
+    def setSubject(self, subject):
+		"Embeds info in the PDF file"
+    
+    def showPage(self):
+        """Ends the page and starts a new one.  The graphics state is reset"""
+
+    def getPageNumber(self):
+		"""Useful for numbering your documents as you go!"""
+        return self._pageNumber
+        
+    def save(self):
+        """Saves the file.  If holding data, do
+        a showPage() to save them having to."""
+
+    def setPageSize(self, size):
+        """accepts a 2-tuple in points for paper size"""
+
+    def saveState(self):
+		"""Saves the current grahics state so you can undo changes later"""
+
+    def restoreState(self):
+		"""Restore to state of last saveState()"""
+</pre>
+
+
+
+
+<H3>Text Manipulation</h3>
+PDF excels at placing text.  We're interested in writing it out efficiently,
+and keeping track of the 'text cursor' so we know when we are at the bottom 
+of the page.  Note that most of these methods correspond directly to
+PDF operators and involve little or no processing.
+
+The metaphor is of a current text cursor which moves across and down,
+and you can query the canvas to get the current position.  This is defined
+relative to 'user space' - so if distort user space, keeping track of when
+you have reached the bottom of the page is your problem (for the time being).
+Text cursor tracking is definitely breakable now but is a priority.
+
+There are three text drawing routines:  textOut(), textLine(), and textLines().
+textOut() does a stringWidth() to update the cursor, so for a single isolated
+string on the page it is more efficient to call textLine(), which only has to 
+move the y location down.
+
+Here's the full set of text-related methods:
+<pre>
+    def getAvailableFonts(self):
+        """Returns the list of PostScript font names available.
+        Standard set now, but may grow in future with font embedding."""
+
+    def setFont(self, psfontname, size, leading = None):
+        """Sets the font.  If leading not specified, defaults to 1.2 x
+        font size. Raises a readable exception if an illegal font
+        is supplied.  Font names are case-sensitive!"""
+    
+	def getCursor(self):
+        """Returns current text position in user space"""        
+    
+	def setTextOrigin(self, x, y):
+        """Sets the text location, relative to the current graphics
+        coordinate system"""
+
+    def setTextTransform(self, a, b, c, d, e, f):
+        "Like setTextOrigin, but does rotation, scaling etc."
+
+    def stringWidth(self, text):
+        "gets width of a string in the current font"
+    
+<b>    def textOut(self, text):
+</b>        "prints string at current point, text cursor moves across"
+
+ <b>   def textLine(self, text=''):</b>
+        """prints string at current point, text cursor moves down.
+        Can work with no argument to simply move the cursor down."""
+
+<b>    def textLines(self, stuff, trim=1):</b>
+        """prints multi-line or newlined strings, moving down.  One
+        comon use is to quote a multi-line block in your Python code;
+        since this may be indented, by default it trims whitespace
+        off each line of; set trim=0 to preserve whitespace."""
+
+    def setCharSpace(self, charSpace):
+         """Adjusts inter-character spacing"""
+
+    def setWordSpace(self, wordSpace):
+        """Adjust inter-word spacing.  This can be used
+        to flush-justify text - you get the width of the
+        words, and add some space between them."""
+
+    def setHorizScale(self, horizScale):
+        "Stretches text out horizontally"
+
+    def setLeading(self, leading):
+        "How far to move down at the end of a line."
+
+    def setTextRenderMode(self, mode):
+        """Set the text rendering mode.
+
+        0 = Fill text
+        1 = Stroke text
+        2 = Fill then stroke
+        3 = Invisible
+        4 = Fill text and add to clipping path
+        5 = Stroke text and add to clipping path
+        6 = Fill then stroke and add to clipping path
+        7 = Add to clipping path"""
+        
+    def setRise(self, rise):
+        "Move text baseline up or down to allow superscrip/subscripts"
+
+</pre>
+
+
+<H3>Line drawing methods</h3>
+The following methods draw lines of various types, using the current line settings:
+<pre>
+    def line(self, x1,y1, x2,y2):
+        "As it says"       
+
+    def lines(self, linelist):
+        """As line(), but slightly more efficient for lots of them -
+        one stroke operation and one less function call"""
+    
+    def grid(self, xlist, ylist):
+        """Lays out a grid in current line style.  Suuply list of
+        x an y positions."""
+    
+    def bezier(self, x1, y1, x2, y2, x3, y3, x4, y4):
+	    "Bezier curve with the four given control points"
+
+    def arc(self, x1,y1, x2,y2, startAng=0, extent=90):
+        """Draw a partial ellipse inscribed within the rectangle x1,y1,x2,y2,
+        starting at startAng degrees and covering extent degrees.   Angles
+        start with 0 to the right (+x) and increase counter-clockwise.
+        These should have x1&ltx2 and y1&lty2."""
+</pre>
+Note that bezier() is more efficient than arc(), as bezier curves are PDF primitives;
+PDFgen approximates an arc with up to four bezier curves, one for each quadrant.
+
+<H3>Shape drawing methods</h3>
+The following methods draw regular solid shapes. In general, you specify the geometry
+of the shape, and whether you want it stroked (i.e. the outline drawn in the
+current line style), or filled in the current fill color, or both.
+<pre>
+    def rect(self, x, y, width, height, stroke=1, fill=0):
+    def ellipse(self, x1, y1, x2, y2, stroke=1, fill=0):
+    def circle(self, x_cen, y_cen, r, stroke=1, fill=0):
+
+    def wedge(self, x1,y1, x2,y2, startAng, extent, stroke=1, fill=0):
+        """Like arc, but connects to the centre of the ellipse.
+        Most useful for pie charts and PacMan!"""
+
+</pre>
+We should probably add roundRect(), with a radius for the corners.  Other shapes
+may be made up in two ways:  (1) using the above, together with coordinate 
+transformations, or (2) using paths.  Both are covered below.
+
+<H3>Path drawing</h3>
+Postscript, PDF, and other high-end graphics APIs have the concept of a 'path'.
+This is a sequence of lines and solid shapes which may be built up in steps.
+PDF has a separate 'path object' you can use to create these.  The canvas
+has one method to give you a fresh path, and two to do something with one:<P>
+<pre>class Canvas...
+    def beginPath(self):
+        """Returns a fresh path object"""
+    
+    def drawPath(self, aPath, stroke=1, fill=0):
+        "Draw in the mode indicated"
+    
+	def clipPath(self, aPath, stroke=1, fill=0):
+        "clip as well as drawing - subsequent drawing
+		ops wil only appear if within the area of this
+		path"
+    
+</pre>
+As with the basic shapes, anything you build can be filled, stroked or both.
+Once you have a path, you can bild it up.  It does not have to be a single
+closed shape; a series of squares making up a chequerboard is also a valid path.
+
+Here's an example of how they are used:
+<pre>
+		#draw a triangle
+        p = canvas.beginPath()
+        p.moveTo(x1, y1)
+        p.lineTo(x2, y2)
+		p.lineTo(x3, y3)
+		p.close()  #back to first point
+        self.drawPath(p,stroke=1, fill=1) #draw and fill
+
+</pre>
+Here are the things you can do with paths.  Basically, you can use moveTo, 
+lineTo and curveTo to make your own shapes, or add ready made shapes.
+<pre>
+class PDFPathObject:
+    
+	def moveTo(self, x, y):
+	
+    def lineTo(self, x, y):
+	
+    def curveTo(self, x1, y1, x2, y2, x3, y3):
+    
+    def arc(self, x1,y1, x2,y2, startAng=0, extent=90):
+
+    def arcTo(self, x1,y1, x2,y2, startAng=0, extent=90):
+        """Like arc, but draws a line from the current point to
+        the start if the start is not the current point."""
+
+    def rect(self, x, y, width, height):
+
+    def ellipse(self, x, y, width, height):
+       
+    def circle(self, x_cen, y_cen, r):
+        
+    def close(self):
+        "draws a line back to where it started"
+</pre>
+Paths let you do almost any shape you want.  But they also offer
+significant performance and reuse benefits.  Internally, they 
+accumulate a bunch of Postscript page-marking operators to draw
+your shape, and these are only added to the page stream when
+you call drawPath().  So you can make a path once, and then draw it
+many times.  This saves some Python execution time, and a lot of
+typing time.  If you compress pages, there's a chance that the 
+compressor will pick up on the repetition and save you space too.
+
+<H3>Clipping with Paths</h3>
+The other very neat thing you can do with paths is clipping.  Here we've 
+tuirned the word 'Python' into a clipping path, and used it as a 'mask'
+so that anything drawn thereafter only appears if within the path.
+<img src="cliptext.png" width=417 height=339 border=0 align="middle" title="Clipping to a Path" alt="">
+
+Another common use of clipping is in chart drawing - you can limit 
+drawing to the rectangular region you are interested in, then
+happily draw an entire data series even if it goes out of the
+chart bounds.
+
+<H3>Image Manipulation</h3>
+pdfgen uses the Python Imaging Library to read and output a very wide
+variety of image formats.  You don't need to install PIL, but you
+can't use images without it.  Currently we only have one image
+drawing function:
+<pre>    def drawInlineImage(self, image, x,y, width=None,height=None):
+        """Draw a PIL Image into the specified rectangle.  If width and
+        height are omitted, they are calculated from the image size.
+        Also allow file names as well as images.  This allows a
+        caching mechanism"""
+ </pre>
+JPEG images are inlined directly in the file - PDF supports JPEG directly.
+Other formats are decoded to bitmap data by the Python Imaging Library
+and encoded in a special way.  This can take some time (a couple of
+seconds for a scanned holiday photo, quite a pain for you whole photo
+album), so you can pass  in a filename and the results will be cached 
+in an intermediate file; subsequent builds of image-rich documents go
+as fast as the data can be read and written to disk.  We're at work on
+some optional C extensions to make first-time image processing faster too.
+
+One key thing not yet done is to be able to include images ONCE at the
+beginning of the file, and reference them later. We'll probably have some 
+special drawing routines which can only be called until Page 1 is written 
+to disk; you will give an image a name, and use that to refer later.
+There is no challenge in adding this, just needs a spare evening :-)
+
+<H3>Graphics State Parameters</h3>
+These are all evident from a look at the <a href="testpdfgen.pdf">test document</a>.
+There are a few more that can be added as the need arises, such as other color
+models of fill patterns, but line drawing is fairly well sorted.
+<pre>
+    def setLineWidth(self, width):
+    def setLineCap(self, mode):
+    def setLineJoin(self, mode):
+    def setMiterLimit(self, limit):
+    def setDash(self, array=[], phase=0):
+    def setFillColorRGB(self, r, g, b):
+    def setStrokeColorRGB(self, r, g, b):
+</pre>
+
+<H3>Coordinate Transformation</h3>
+The default coordinate system is in points (72 per inch), with the origin
+at the bottom left corner of the page and y increasing upwards.  You
+can alter this with the following methods, <a href="testpdfgen.pdf">
+demonstrated in testpdfgen.py</a>:
+
+<pre>
+    def transform(self, a,b,c,d,e,f):
+		"For mathematicians only; the next few call this"
+    def translate(self, dx, dy):
+		"Move axes accordingly"
+    def scale(self, x, y):
+		"stretch/squeeze horizontal and/or vertical axes"
+    def rotate(self, theta):
+        """theta is in degrees."""
+    def skew(self, alpha, beta):
+		"""Skew x and y axes by angle alpha and beta (degrees)"""
+</pre>
+
+While we are at it, we will reiterate two very important methods, which
+are used in tandem with the coordinate transformations:
+<pre>
+    def saveState(self):
+    def restoreState(self):
+</pre>
+Right now, the only way to undo a coordinate change is saveing first then
+restoring after you draw.  These save/restore ALL graphics state parameters.
+They cannot be used across multple page breaks.
+
+<H3>Special PDF Effects</h3>
+At the moment, the only real PDF-specific feature is the page transition.
+This was added to let me give nice presentations.  The comment block
+explains the options available.  The next priority is to add Document
+Outline entries.
+
+<pre>
+    def addLiteral(self, s, escaped=1):
+		"Directly writes PDF operators to output.  For experts only"
+
+    def setPageTransition(self, effectname=None, duration=1, 
+                        direction=0,dimension='H',motion='I'):
+        """PDF allows page transition effects for use when giving
+        presentations.  There are six possible effects.  You can
+        just guive the effect name, or supply more advanced options
+        to refine the way it works.  There are three types of extra
+        argument permitted, and here are the allowed values:
+            direction_arg = [0,90,180,270]
+            dimension_arg = ['H', 'V']
+            motion_arg = ['I','O'] (start at inside or outside)
+            
+        This table says which ones take which arguments:
+
+        PageTransitionEffects = {
+            'Split': [direction_arg, motion_arg],
+            'Blinds': [dimension_arg],
+            'Box': [motion_arg],
+            'Wipe' : [direction_arg],
+            'Dissolve' : [],
+            'Glitter':[direction_arg]
+            }
+        Have fun!"""
+
+
+</pre>
+
+
+<ADDRESS>Robinson Analytics Ltd., Wimbledon, London. email
+<A HREF="mailto:andy@robanal.demon.co.uk">mailto:andy@robanal.demon.co.uk</A> 
+</ADDRESS>
+</BODY>
+</HTML>
+
